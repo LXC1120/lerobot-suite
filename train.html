@@ -14,7 +14,7 @@
     <div class="header-inner">
       <div>
         <h1>LeRobot 工具套件V1</h1>
-        <div class="small muted">训练 / 推理（先做配置与命令骨架，后续接 HuggingFace）</div>
+        <div class="small muted">一键训练 / 一键推理（当前为配置骨架，后续接 HuggingFace）</div>
       </div>
       <div class="topbar-right">
         <a class="navbtn" href="servo.html">舵机配置</a>
@@ -26,6 +26,7 @@
 
   <div class="card">
     <h2>HuggingFace（占位）</h2>
+
     <div class="grid2">
       <label class="small">启用
         <select id="hfEnabled" style="width:100%">
@@ -44,8 +45,8 @@
       </label>
       <div class="card" style="padding:12px">
         <div class="small muted">
-          后续：这里会加入“一键推送数据→触发云端训练→拉取模型→一键推理”。<br/>
-          为了安全，token 不建议明文存在前端配置文件里（可用 OAuth/后端/Actions）。
+          后续：加入“一键推送数据→触发训练→拉取模型→生成推理命令”。<br/>
+          安全建议：token 不要明文存前端配置文件里，可用 OAuth / 后端 / GitHub Actions。
         </div>
       </div>
     </div>
@@ -53,7 +54,6 @@
 
 <script>
 (async () => {
-  await SuiteI18n.apply();
   await SuiteFAB.mountFAB();
 
   const cfg = SuiteConfig.get();
