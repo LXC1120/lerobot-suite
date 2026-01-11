@@ -10,21 +10,10 @@
     }
   }
 
-  function applyDict(dict){
-    document.querySelectorAll("[data-i18n]").forEach(el => {
-      const key = el.getAttribute("data-i18n");
-      const val = key.split(".").reduce((o,k)=> (o && o[k] != null ? o[k] : null), dict);
-      if (val == null) return;
-      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA") el.placeholder = String(val);
-      else el.textContent = String(val);
-    });
-  }
-
   async function apply(){
     const cfg = window.SuiteConfig?.get?.() || { ui:{lang:"zh-CN"} };
     const lang = cfg.ui?.lang || "zh-CN";
     const dict = await loadDict(lang);
-    applyDict(dict);
     window.__i18nDict = dict;
   }
 
