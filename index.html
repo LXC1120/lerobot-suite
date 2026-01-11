@@ -2,15 +2,298 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"/>
-  <meta http-equiv="refresh" content="0; url=servo.html">
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>LeRobot 工具套件</title>
-  <script>
-    // 更可靠的跳转（避免部分浏览器不吃 meta refresh）
-    location.replace("servo.html");
-  </script>
+  <title>LeRobot 工具套件（静态网页 / GitHub Pages）</title>
+  <style>
+    :root{color-scheme:light dark}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+    .topbar{
+      position:sticky; top:0; z-index:20; background:Canvas;
+      border-bottom:1px solid rgba(127,127,127,.18);
+      padding:10px 14px;
+      display:flex; align-items:center; gap:12px;
+    }
+    .brand{display:flex;flex-direction:column;gap:2px}
+    .brand b{font-size:14px}
+    .brand span{font-size:12px;opacity:.75}
+    .spacer{flex:1}
+    .nav{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+    .btn{
+      padding:7px 10px; border-radius:999px; border:1px solid rgba(127,127,127,.35);
+      cursor:pointer; background:transparent; font:inherit;
+    }
+    .btn.active{outline:2px solid rgba(127,127,127,.45)}
+    iframe{
+      width:100%;
+      height: calc(100vh - 58px);
+      border:0;
+      display:block;
+      background: Canvas;
+    }
+
+    /* Settings FAB */
+    .fab{
+      position:fixed; right:16px; bottom:16px; z-index:30;
+      width:52px; height:52px; border-radius:999px;
+      border:1px solid rgba(127,127,127,.35);
+      background:Canvas; box-shadow:0 10px 30px rgba(0,0,0,.25);
+      cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px;
+    }
+    .fab:active{transform:scale(.98)}
+    dialog{border:none;border-radius:18px;padding:0;max-width:min(920px,94vw);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+    dialog::backdrop{background:rgba(0,0,0,.55)}
+    .modal{padding:14px}
+    .modalHeader{display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:10px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+    input,select,textarea{width:100%;padding:8px 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);font:inherit}
+    textarea{min-height:74px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .pill{display:inline-block;padding:2px 10px;border:1px solid rgba(127,127,127,.35);border-radius:999px;font-size:12px;opacity:.9}
+    .small{font-size:12px;opacity:.85}
+    .warn{color:#b45309}
+  </style>
 </head>
 <body>
-  <p>Redirecting… <a href="servo.html">Click here</a></p>
+  <div class="topbar">
+    <div class="brand">
+      <b id="brandTitle">LeRobot 工具套件</b>
+      <span id="brandSub">静态网页（GitHub Pages）｜Web Serial 需 HTTPS</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="nav" id="nav">
+      <button class="btn" data-page="servo">舵机配置</button>
+      <button class="btn" data-page="lerobot">LeRobot 命令生成</button>
+      <button class="btn" data-page="train">一键训练推理</button>
+    </div>
+  </div>
+
+  <iframe id="frame" title="app"></iframe>
+
+  <button class="fab" id="btnSettings" title="设置 / Settings">⚙️</button>
+
+  <dialog id="dlgSettings">
+    <div class="modal">
+      <div class="modalHeader">
+        <strong id="settingsTitle">设置</strong>
+        <div class="row">
+          <button class="btn" id="btnExport">导出配置</button>
+          <label class="btn" style="cursor:pointer">
+            导入配置<input id="fileImport" type="file" accept="application/json" style="display:none"/>
+          </label>
+          <button class="btn" id="btnReset">重置</button>
+          <button class="btn" id="btnClose">关闭</button>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div>
+          <div class="small">语言 / Language</div>
+          <select id="selLang">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div>
+          <div class="small">系统 / OS</div>
+          <select id="selOS">
+            <option value="linux">Linux</option>
+            <option value="mac">macOS</option>
+            <option value="win">Windows</option>
+          </select>
+        </div>
+      </div>
+
+      <h3 style="margin:14px 0 8px;font-size:14px">硬件（用于命令拼接）</h3>
+      <div class="grid2">
+        <div>
+          <div class="small">主臂端口路径（如 /dev/ttyACM0 / COM3）</div>
+          <input id="inpLeaderPortPath" placeholder="/dev/ttyACM0 或 COM3"/>
+        </div>
+        <div>
+          <div class="small">从臂端口路径（如 /dev/ttyACM1 / COM4）</div>
+          <input id="inpFollowerPortPath" placeholder="/dev/ttyACM1 或 COM4"/>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="small">主摄像头备注（可选）</div>
+          <input id="inpCamMainLabel" placeholder="例如：Logitech C920 / index 0"/>
+        </div>
+        <div>
+          <div class="small">副摄像头备注（可选）</div>
+          <input id="inpCamAuxLabel" placeholder="例如：手机摄像头 / index 1"/>
+        </div>
+      </div>
+
+      <h3 style="margin:14px 0 8px;font-size:14px">路径备注（浏览器无法保存真实目录句柄，迁移后仍需重新选择目录）</h3>
+      <div class="grid2">
+        <div>
+          <div class="small">校准目录备注（HF_LEROBOT_CALIBRATION）</div>
+          <input id="inpCalibNote" placeholder="例如：D:/hf/lerobot/calibration"/>
+        </div>
+        <div>
+          <div class="small">数据目录备注（record 输出）</div>
+          <input id="inpDataNote" placeholder="例如：D:/hf/lerobot/data"/>
+        </div>
+      </div>
+
+      <h3 style="margin:14px 0 8px;font-size:14px">Hugging Face / 云训练（可选）</h3>
+      <div class="grid2">
+        <div>
+          <div class="small">HF 用户名（用于 ${HF_USER}）</div>
+          <input id="inpHfUser" placeholder="your_hf_username"/>
+        </div>
+        <div>
+          <div class="small warn">HF Token（可选；不建议公开分享含 token 的配置文件）</div>
+          <input id="inpHfToken" placeholder="hf_..."/>
+        </div>
+      </div>
+      <div class="grid2" style="margin-top:10px">
+        <div>
+          <div class="small">云服务器 / 训练机（可选）</div>
+          <textarea id="inpCloud" placeholder="例如：provider=vast.ai; sshHost=1.2.3.4; sshUser=root; port=22; notes=..."></textarea>
+        </div>
+        <div>
+          <div class="small">常用备注</div>
+          <textarea id="inpNotes" placeholder="硬件/校准/数据集备注…（会随配置导出）"></textarea>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:10px">
+        提示：配置“导出/导入”能解决你说的“网页刷新丢失”和“迁移到另一台电脑”。<br/>
+        但浏览器出于安全限制：串口授权、真实目录句柄、摄像头权限都不能通过配置文件直接迁移，迁移后仍需手动授权一次。
+      </p>
+    </div>
+  </dialog>
+
+  <script type="module">
+    import { loadConfig, saveConfig, resetConfig, downloadText, readFileAsText, mergeDeep } from "./common.js";
+    const frame = document.getElementById("frame");
+    const nav = document.getElementById("nav");
+
+    const dlg = document.getElementById("dlgSettings");
+    const btnSettings = document.getElementById("btnSettings");
+    const btnClose = document.getElementById("btnClose");
+    const btnExport = document.getElementById("btnExport");
+    const fileImport = document.getElementById("fileImport");
+    const btnReset = document.getElementById("btnReset");
+
+    const selLang = document.getElementById("selLang");
+    const selOS = document.getElementById("selOS");
+    const inpLeaderPortPath = document.getElementById("inpLeaderPortPath");
+    const inpFollowerPortPath = document.getElementById("inpFollowerPortPath");
+    const inpCamMainLabel = document.getElementById("inpCamMainLabel");
+    const inpCamAuxLabel = document.getElementById("inpCamAuxLabel");
+    const inpCalibNote = document.getElementById("inpCalibNote");
+    const inpDataNote = document.getElementById("inpDataNote");
+    const inpHfUser = document.getElementById("inpHfUser");
+    const inpHfToken = document.getElementById("inpHfToken");
+    const inpCloud = document.getElementById("inpCloud");
+    const inpNotes = document.getElementById("inpNotes");
+
+    let cfg = loadConfig();
+
+    const PAGES = {
+      servo: "servo.html",
+      lerobot: "lerobot.html",
+      train: "train.html"
+    };
+
+    function setActive(page){
+      nav.querySelectorAll(".btn").forEach(b => b.classList.toggle("active", b.dataset.page === page));
+      frame.src = PAGES[page] || PAGES.servo;
+      location.hash = page;
+    }
+
+    function fillSettings(){
+      selLang.value = cfg.lang || "zh";
+      selOS.value = cfg.os || "linux";
+      inpLeaderPortPath.value = cfg.devices?.leaderPortPath || "";
+      inpFollowerPortPath.value = cfg.devices?.followerPortPath || "";
+      inpCamMainLabel.value = cfg.devices?.camMainLabel || "";
+      inpCamAuxLabel.value = cfg.devices?.camAuxLabel || "";
+      inpCalibNote.value = cfg.paths?.calibDirNote || "";
+      inpDataNote.value = cfg.paths?.dataDirNote || "";
+      inpHfUser.value = cfg.hf?.username || "";
+      inpHfToken.value = cfg.hf?.token || "";
+      inpCloud.value = JSON.stringify(cfg.cloud || {}, null, 2);
+      inpNotes.value = JSON.stringify(cfg.notes || {}, null, 2);
+    }
+
+    function applySettings(){
+      cfg.lang = selLang.value;
+      cfg.os = selOS.value;
+      cfg.devices = cfg.devices || {};
+      cfg.devices.leaderPortPath = inpLeaderPortPath.value.trim();
+      cfg.devices.followerPortPath = inpFollowerPortPath.value.trim();
+      cfg.devices.camMainLabel = inpCamMainLabel.value.trim();
+      cfg.devices.camAuxLabel = inpCamAuxLabel.value.trim();
+
+      cfg.paths = cfg.paths || {};
+      cfg.paths.calibDirNote = inpCalibNote.value.trim();
+      cfg.paths.dataDirNote = inpDataNote.value.trim();
+
+      cfg.hf = cfg.hf || {};
+      cfg.hf.username = inpHfUser.value.trim();
+      cfg.hf.token = inpHfToken.value.trim();
+
+      try { cfg.cloud = JSON.parse(inpCloud.value || "{}"); } catch { /* keep old */ }
+      try { cfg.notes = JSON.parse(inpNotes.value || "{}"); } catch { /* keep old */ }
+
+      saveConfig(cfg);
+      // notify iframe page
+      try { frame.contentWindow.postMessage({ type:"CFG_UPDATED", cfg }, "*"); } catch {}
+    }
+
+    // events
+    nav.addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn");
+      if (!btn) return;
+      setActive(btn.dataset.page);
+    });
+
+    btnSettings.addEventListener("click", () => { fillSettings(); dlg.showModal(); });
+    btnClose.addEventListener("click", () => { dlg.close(); });
+
+    [selLang, selOS, inpLeaderPortPath, inpFollowerPortPath, inpCamMainLabel, inpCamAuxLabel, inpCalibNote, inpDataNote, inpHfUser, inpHfToken, inpCloud, inpNotes]
+      .forEach(el => el.addEventListener("change", () => applySettings()));
+
+    btnExport.addEventListener("click", () => {
+      applySettings();
+      downloadText("lerobot_suite_config.json", JSON.stringify(cfg, null, 2));
+    });
+
+    fileImport.addEventListener("change", async () => {
+      const f = fileImport.files?.[0];
+      if (!f) return;
+      try {
+        const text = await readFileAsText(f);
+        const obj = JSON.parse(text);
+        cfg = mergeDeep(loadConfig(), obj);
+        saveConfig(cfg);
+        fillSettings();
+        applySettings();
+      } catch (e) {
+        alert("导入失败：配置文件不是合法 JSON");
+      } finally {
+        fileImport.value = "";
+      }
+    });
+
+    btnReset.addEventListener("click", () => {
+      if (!confirm("确定要重置配置吗？（不会影响 servo.html 自己的本地状态）")) return;
+      resetConfig();
+      cfg = loadConfig();
+      fillSettings();
+      applySettings();
+    });
+
+    // boot
+    const page = (location.hash || "#servo").slice(1);
+    setActive(PAGES[page] ? page : "servo");
+  </script>
 </body>
 </html>
