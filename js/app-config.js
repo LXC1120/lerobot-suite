@@ -1,5 +1,5 @@
 (() => {
-  const KEY = "lerobot_suite_config_v1";
+  const KEY = "lerobot_suite_config_v2";
 
   function deepMerge(a, b){
     if (typeof a !== "object" || !a) return structuredClone(b);
@@ -12,20 +12,76 @@
   }
 
   const DEFAULT_CONFIG = {
-    version: "suite_v1",
+    version: "suite_v2",
     ui: { lang: "zh-CN", os: "win" },
 
-    // 以后你可以把店铺链接、广告位配置也放这里
+    // 用于你的推广：二维码与链接
     shop: { url: "https://example.com", qr: "assets/qr.png" },
 
-    lerobot: {
+    // 舵机工具（V8.2）建议参数（注意：真正生效仍以 servo-tool 页面自身 localStorage 为准）
+    servoTool: {
       baud: 1000000,
-      leader: { calibId: "", note: "主臂" },
-      follower: { calibId: "", note: "从臂" },
-      commandFlags: { display_data: true, robot_cameras_json: "" }
+      scanRange: [1, 20],
+      posPeriodMs: 50,
+      pipelineRange: [1, 6],
+      idNotes: {} // {"1":"肩", ...} 预留
     },
 
-    hf: { enabled: false, username: "", repo: "" }
+    // LeRobot 命令生成用到的“永久配置”
+    lerobot: {
+      baud: 1000000,
+      jointIds: [1,2,3,4,5,6],
+
+      leader: { calibId: "", note: "leader" },
+      follower: { calibId: "", note: "follower" },
+
+      // 这里保存“端口路径/备注”，因为浏览器无法自动读取系统的 /dev/tty* / COM*
+      ports: {
+        leaderPort: "",   // 例: COM5 或 /dev/ttyUSB0 或 /dev/tty.usbmodem*
+        followerPort: ""
+      },
+
+      cameras: {
+        main: "",  // 例: 0 或 /dev/video0 或其它（按你的习惯填写备注）
+        aux:  ""
+      },
+
+      paths: {
+        calibDirNote: "", // 备注：例如 ~/.cache/huggingface/lerobot/calibration
+        dataDirNote:  ""  // 备注：例如 ~/.cache/huggingface/lerobot/datasets
+      },
+
+      // 额外 flags
+      commandFlags: {
+        display_data: true,
+        robot_cameras_json: ""
+      },
+
+      // train 用到的默认项（可在设置里长期保存）
+      train: {
+        dataset_repo_id: "",  // 例: username/my_dataset
+        output_dir: "",       // 例: outputs/run1（可留空）
+        policy_path: "lerobot/smolvla_base",
+        batch_size: 64,
+        steps: 20000
+      }
+    },
+
+    // Hugging Face
+    hf: {
+      enabled: false,
+      username: "",
+      token: "" // ⚠️ 不要把包含 token 的配置文件公开分享
+    },
+
+    // 云 GPU / 训练服务器（预留）
+    cloud: {
+      provider: "",
+      endpoint: "",
+      ssh_host: "",
+      ssh_user: "",
+      notes: ""
+    }
   };
 
   function load(){
@@ -89,7 +145,6 @@
       save(deepMerge(DEFAULT_CONFIG, cfg));
       return;
     }
-
     return new Promise((resolve, reject) => {
       const inp = document.createElement("input");
       inp.type = "file";

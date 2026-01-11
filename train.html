@@ -3,58 +3,76 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>一键训练 / 推理（规划中）</title>
-  <style>
-    :root{color-scheme:light dark}
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"PingFang SC","Microsoft YaHei",sans-serif;max-width:1200px;margin:0 auto;padding:16px;line-height:1.45}
-    h1{font-size:18px;margin:0 0 10px}
-    h2{font-size:15px;margin:14px 0 8px}
-    .small{font-size:12px;opacity:.85}
-    .card{border:1px solid rgba(127,127,127,.25);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin:10px 0}
-    .pill{display:inline-block;padding:2px 10px;border:1px solid rgba(127,127,127,.35);border-radius:999px}
-    .btn{padding:8px 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);cursor:pointer;background:transparent}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width:900px){.grid2{grid-template-columns:1fr}}
-    input,textarea,select{width:100%;padding:8px 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);font:inherit}
-    textarea{min-height:90px}
-  </style>
+  <title>训练/推理｜LeRobot 工具套件V1</title>
+  <link rel="stylesheet" href="assets/app.css"/>
+  <script src="js/app-config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/cmdgen.js"></script>
+  <script src="js/fab-settings.js"></script>
 </head>
 <body>
-  <h1>一键训练 / 推理</h1>
-  <div class="small"><span class="pill">此页是“下一阶段”功能预留</span></div>
-
-  <div class="card">
-    <h2>你在设置里填好这些，就可以生成更完整的训练/推理流程</h2>
-    <div class="grid2">
+  <div class="header">
+    <div class="header-inner">
       <div>
-        <div class="small">Hugging Face Token（可选）</div>
-        <div id="hfToken" class="small"></div>
+        <h1>训练/推理</h1>
+        <div class="small muted">当前版本先把“训练相关配置”集中到设置里，并生成基础训练命令。云端一键训练/推理后续可直接在此页扩展。</div>
       </div>
-      <div>
-        <div class="small">云 GPU / 服务器信息（可选）</div>
-        <div id="cloud" class="small"></div>
+      <div class="topbar-right">
+        <a class="navbtn" href="servo.html" data-i18n="nav.servo">舵机配置</a>
+        <a class="navbtn" href="cmd.html" data-i18n="nav.cmd">LeRobot 命令生成</a>
+        <a class="navbtn active" href="train.html" data-i18n="nav.train">训练/推理</a>
       </div>
     </div>
-    <p class="small" style="margin-top:10px">
-      说明：纯静态 GitHub Pages 无法直接“在网页里跑训练”。这一页的“一键”通常做法是：<br/>
-      1）生成你要执行的命令/脚本；2）通过 SSH / 远端 API / Hugging Face Spaces 去触发训练；3）把结果模型/日志回写到 Hub。<br/>
-      我已经把“需要长期保存的配置项”都放进设置里，后续我们只要把这些配置拼接成可执行工作流即可。
-    </p>
   </div>
 
-  <script type="module">
-    import { loadConfig, esc, t } from "./common.js";
-    const cfg = loadConfig();
-    document.getElementById("hfToken").textContent = cfg.hf?.token ? "已填写（建议不要公开分享配置文件）" : "未填写";
-    document.getElementById("cloud").textContent = (cfg.cloud?.endpoint || cfg.cloud?.sshHost) ? "已填写" : "未填写";
+  <div class="card">
+    <div class="row">
+      <span class="pill" id="hfPill">HF: -</span>
+      <span class="pill" id="cloudPill">Cloud: -</span>
+      <span class="spacer"></span>
+      <button class="btn" id="btnRefresh">刷新</button>
+    </div>
 
-    window.addEventListener("message", (ev) => {
-      if (!ev?.data || ev.data.type !== "CFG_UPDATED") return;
-      try {
-        localStorage.setItem("lerobot_suite_config_v1", JSON.stringify(ev.data.cfg, null, 2));
-        location.reload();
-      } catch {}
-    });
-  </script>
+    <div class="section">
+      <div class="sectionTitle">本地训练命令</div>
+      <div class="cmdCard">
+        <div class="cmdLine" id="cmdTrain"></div>
+        <div class="cmdActions">
+          <button class="btn" id="btnCopyTrain">复制</button>
+        </div>
+      </div>
+      <p class="small muted" style="margin-top:10px">
+        下一步你可以在这里加入：
+
+        1）绑定 Hugging Face（token）并一键推送/拉取；
+
+        2）云 GPU provider 信息与一键提交训练；
+
+        3）训练完成后一键下载/选择 checkpoint，生成推理命令并在本页管理。
+      </p>
+    </div>
+  </div>
+
+<script>
+(() => {
+  function render(){
+    const cfg = SuiteConfig.get();
+    const out = SuiteCmdGen.build(cfg);
+    document.getElementById("cmdTrain").textContent = out.header + out.train;
+    document.getElementById("hfPill").textContent = "HF: " + (cfg.hf.enabled ? (cfg.hf.username || "enabled") : "disabled");
+    document.getElementById("cloudPill").textContent = "Cloud: " + (cfg.cloud.provider || "not set");
+  }
+
+  document.getElementById("btnRefresh").addEventListener("click", render);
+  document.getElementById("btnCopyTrain").addEventListener("click", async () => {
+    await SuiteCmdGen.copy(document.getElementById("cmdTrain").textContent);
+  });
+  window.addEventListener("suite-config-changed", render);
+
+  SuiteI18n.applyStatic();
+  SuiteFAB.mountFAB();
+  render();
+})();
+</script>
 </body>
 </html>

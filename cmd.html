@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LeRobot 命令生成｜LeRobot 工具套件V1</title>
+  <link rel="stylesheet" href="assets/app.css"/>
+  <script src="js/app-config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/cmdgen.js"></script>
+  <script src="js/fab-settings.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <h1 data-i18n="cmd.title">LeRobot 命令生成</h1>
+        <div class="small muted" data-i18n="cmd.subtitle">本页只根据“设置”里的配置生成命令；点击即可复制。</div>
+      </div>
+      <div class="topbar-right">
+        <a class="navbtn" href="servo.html" data-i18n="nav.servo">舵机配置</a>
+        <a class="navbtn active" href="cmd.html" data-i18n="nav.cmd">LeRobot 命令生成</a>
+        <a class="navbtn" href="train.html" data-i18n="nav.train">训练/推理</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <span class="pill" id="osPill">OS: -</span>
+      <span class="spacer"></span>
+      <button class="btn" id="btnRefresh">刷新</button>
+    </div>
+    <p class="small warn" style="margin-top:10px" data-i18n="cmd.hint">
+      提示：浏览器无法自动读取系统串口名称与本地目录路径，请在设置里填好（如 COM5 或 /dev/ttyUSB0）。
+    </p>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="cmdCard" id="cardCalLeader">
+      <h3 data-i18n="cmd.calibrateLeader">校准主臂</h3>
+      <div class="cmdLine" id="cmdCalLeader"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdCalLeader">复制</button>
+      </div>
+    </div>
+
+    <div class="cmdCard" id="cardCalFollower">
+      <h3 data-i18n="cmd.calibrateFollower">校准从臂</h3>
+      <div class="cmdLine" id="cmdCalFollower"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdCalFollower">复制</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="cmdCard">
+      <h3 data-i18n="cmd.teleop">遥操作（teleoperate）</h3>
+      <div class="cmdLine" id="cmdTeleop"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdTeleop">复制</button>
+      </div>
+    </div>
+
+    <div class="cmdCard">
+      <h3 data-i18n="cmd.record">录制（record）</h3>
+      <div class="cmdLine" id="cmdRecord"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdRecord">复制</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:14px">
+    <div class="cmdCard">
+      <h3 data-i18n="cmd.replay">回放（replay）</h3>
+      <div class="cmdLine" id="cmdReplay"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdReplay">复制</button>
+      </div>
+    </div>
+
+    <div class="cmdCard">
+      <h3 data-i18n="cmd.train">训练（train）</h3>
+      <div class="cmdLine" id="cmdTrain"></div>
+      <div class="cmdActions">
+        <button class="btn" data-copy="#cmdTrain">复制</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3 data-i18n="cmd.quick">smolVLA 快速复现模板</h3>
+    <pre id="cmdQuick"></pre>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="btnCopyQuick">复制模板</button>
+      <span class="small muted">（模板会随 LeRobot 文档演进而变化，你可以在代码里更新）</span>
+    </div>
+  </div>
+
+<script>
+(() => {
+  function render(){
+    const cfg = SuiteConfig.get();
+    const out = SuiteCmdGen.build(cfg);
+    document.getElementById("osPill").textContent = "OS: " + out.os;
+    document.getElementById("cmdCalLeader").textContent = out.header + out.calibrateLeader;
+    document.getElementById("cmdCalFollower").textContent = out.header + out.calibrateFollower;
+    document.getElementById("cmdTeleop").textContent = out.header + out.teleop;
+    document.getElementById("cmdRecord").textContent = out.header + out.record;
+    document.getElementById("cmdReplay").textContent = out.header + out.replay;
+    document.getElementById("cmdTrain").textContent = out.header + out.train;
+    document.getElementById("cmdQuick").textContent = out.smolvlaQuick;
+  }
+
+  document.getElementById("btnRefresh").addEventListener("click", render);
+
+  document.body.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-copy]");
+    if (!btn) return;
+    const sel = btn.getAttribute("data-copy");
+    const text = document.querySelector(sel)?.textContent || "";
+    await SuiteCmdGen.copy(text);
+    btn.textContent = "已复制";
+    setTimeout(()=>btn.textContent="复制", 900);
+  });
+
+  document.getElementById("btnCopyQuick").addEventListener("click", async () => {
+    await SuiteCmdGen.copy(document.getElementById("cmdQuick").textContent);
+  });
+
+  window.addEventListener("suite-config-changed", render);
+  window.addEventListener("suite-ui-changed", render);
+
+  SuiteI18n.applyStatic();
+  SuiteFAB.mountFAB();
+  render();
+})();
+</script>
+</body>
+</html>
