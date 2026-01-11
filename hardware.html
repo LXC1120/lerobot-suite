@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>硬件配置</title>
+  <link rel="stylesheet" href="assets/app.css" />
+  <script src="js/app-config.js"></script>
+  <script src="js/i18n.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <h1 id="pageTitle"></h1>
+        <div class="small muted" id="pageSubtitle"></div>
+      </div>
+      <div class="nav">
+        <a href="index.html" data-i18n="nav.home"></a>
+        <a class="active" href="hardware.html" data-i18n="nav.hardware"></a>
+        <a href="calibrate.html" data-i18n="nav.calibrate"></a>
+        <a href="train.html" data-i18n="nav.train"></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <h2 data-i18n="hardware.title"></h2>
+        <div class="small muted" data-i18n="hardware.subtitle"></div>
+      </div>
+      <span class="spacer"></span>
+      <a class="btn" href="servo-tool-v8.2.html" target="_blank" rel="noopener"
+         data-i18n="hardware.openNewTab" style="text-decoration:none"></a>
+    </div>
+  </div>
+
+  <div class="card" style="padding:0; margin-top:14px; overflow:hidden">
+    <iframe src="servo-tool-v8.2.html" style="width:100%; height:78vh; border:0"></iframe>
+  </div>
+
+<script>
+(async () => {
+  await SuiteI18n.apply();
+  const dict = window.__i18nDict || {};
+  document.getElementById("pageTitle").textContent = dict?.nav?.hardware || "硬件配置";
+  document.getElementById("pageSubtitle").textContent = dict?.hardware?.subtitle || "";
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>校准/命令</title>
+  <link rel="stylesheet" href="assets/app.css" />
+  <script src="js/app-config.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/cmdgen.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="header-inner">
+      <div>
+        <h1 id="pageTitle"></h1>
+        <div class="small muted" id="pageSubtitle"></div>
+      </div>
+      <div class="nav">
+        <a href="index.html" data-i18n="nav.home"></a>
+        <a href="hardware.html" data-i18n="nav.hardware"></a>
+        <a class="active" href="calibrate.html" data-i18n="nav.calibrate"></a>
+        <a href="train.html" data-i18n="nav.train"></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="cal.title"></h2>
+
+    <div class="grid2" style="margin-top:10px">
+      <label class="small"><span data-i18n="cal.leaderId"></span>
+        <input id="leaderId" placeholder="my_leader_arm" style="width:100%"/>
+      </label>
+      <label class="small"><span data-i18n="cal.followerId"></span>
+        <input id="followerId" placeholder="my_follower_arm" style="width:100%"/>
+      </label>
+    </div>
+
+    <div class="grid2" style="margin-top:10px">
+      <label class="small"><span data-i18n="cal.baud"></span>
+        <input id="baud" inputmode="numeric" style="width:100%"/>
+      </label>
+      <label class="small"><span data-i18n="cal.displayData"></span>
+        <select id="displayData" style="width:100%">
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      </label>
+    </div>
+
+    <div style="margin-top:10px">
+      <label class="small"><span data-i18n="cal.camJson"></span></label>
+      <input id="camJson" style="width:100%" placeholder='{"front":{"type":"opencv","index_or_path":0}}'/>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="btnBuild" data-i18n="cal.openCmd"></button>
+      <span class="spacer"></span>
+      <button class="btn" id="btnCopy" data-i18n="cal.copy"></button>
+      <button class="btn" id="btnDownload" data-i18n="cal.download"></button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <h3>teleoperate</h3>
+    <textarea id="outTeleop" readonly></textarea>
+
+    <div class="grid2" style="margin-top:10px">
+      <div>
+        <h3>calibrate leader</h3>
+        <textarea id="outCalLeader" readonly></textarea>
+      </div>
+      <div>
+        <h3>calibrate follower</h3>
+        <textarea id="outCalFollower" readonly></textarea>
+      </div>
+    </div>
+
+    <h3 style="margin-top:10px">record</h3>
+    <textarea id="outRecord" readonly></textarea>
+  </div>
+
+<script>
+(() => {
+  const leaderId = document.getElementById("leaderId");
+  const followerId = document.getElementById("followerId");
+  const baud = document.getElementById("baud");
+  const camJson = document.getElementById("camJson");
+  const displayData = document.getElementById("displayData");
+
+  const outTeleop = document.getElementById("outTeleop");
+  const outCalLeader = document.getElementById("outCalLeader");
+  const outCalFollower = document.getElementById("outCalFollower");
+  const outRecord = document.getElementById("outRecord");
+
+  function syncUIFromCfg(){
+    const cfg = SuiteConfig.get();
+    leaderId.value = cfg.lerobot.leader.calibId || "";
+    followerId.value = cfg.lerobot.follower.calibId || "";
+    baud.value = String(cfg.lerobot.baud || 1000000);
+    camJson.value = cfg.lerobot.commandFlags.robot_cameras_json || "";
+    displayData.value = cfg.lerobot.commandFlags.display_data ? "true" : "false";
+  }
+
+  function syncCfgFromUI(){
+    SuiteConfig.set({
+      lerobot: {
+        baud: Number(baud.value || 1000000),
+        leader: { calibId: leaderId.value.trim(), note: "主臂" },
+        follower: { calibId: followerId.value.trim(), note: "从臂" },
+        commandFlags: {
+          display_data: displayData.value === "true",
+          robot_cameras_json: camJson.value.trim()
+        }
+      }
+    });
+  }
+
+  function build(){
+    syncCfgFromUI();
+    const cfg = SuiteConfig.get();
+    const cmds = SuiteCmdGen.buildCommands(cfg);
+    outTeleop.value = cmds.teleop;
+    outCalLeader.value = cmds.calLeader;
+    outCalFollower.value = cmds.calFollower;
+    outRecord.value = cmds.record;
+  }
+
+  async function download(filename, text){
+    const blob = new Blob([text], {type:"text/plain"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+  }
+
+  document.getElementById("btnBuild").onclick = build;
+  document.getElementById("btnCopy").onclick = async () => {
+    await SuiteCmdGen.copy(outTeleop.value);
+    alert("已复制 teleop 命令");
+  };
+  document.getElementById("btnDownload").onclick = async () => {
+    const cfg = SuiteConfig.get();
+    const ext = (cfg.ui.os === "win") ? "ps1" : "sh";
+    await download(`lerobot_teleop.${ext}`, outTeleop.value);
+  };
+
+  (async () => {
+    await SuiteI18n.apply();
+    const dict = window.__i18nDict || {};
+    document.getElementById("pageTitle").textContent = dict?.nav?.calibrate || "校准/命令";
+    document.getElementById("pageSubtitle").textContent = dict?.cal?.title || "";
+    syncUIFromCfg();
+    build();
+  })();
+
+  window.addEventListener("suite-config-changed", () => {
+    syncUIFromCfg();
+  });
+})();
+</script>
+</body>
+</html>

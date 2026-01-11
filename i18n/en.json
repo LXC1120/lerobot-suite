@@ -1,0 +1,39 @@
+{
+  "portal": {
+    "title": "LeRobot Tool Suite V1 (Web Serial / Desktop Chrome)",
+    "subtitle": "Stage-based workflow: Hardware → Calibrate/Record → Train/Inference",
+    "lang": "Language",
+    "os": "OS",
+    "import": "Import config",
+    "export": "Export config",
+    "reset": "Reset to defaults",
+    "cards": {
+      "hardware": "Hardware setup",
+      "calibrate": "Calibrate & record",
+      "train": "Train & inference (placeholder)"
+    },
+    "tips": "Note: Due to browser security, serial ports and folders require manual authorization per device/browser."
+  },
+  "nav": {
+    "home": "Home",
+    "hardware": "Hardware",
+    "calibrate": "Calibrate/Commands",
+    "train": "Train/Inference"
+  },
+  "hardware": {
+    "title": "Hardware setup",
+    "subtitle": "Servo tool V8.2 embedded below (kept unchanged)",
+    "openNewTab": "Open servo tool in new tab"
+  },
+  "cal": {
+    "title": "Calibrate & Command Builder",
+    "leaderId": "Leader calib ID",
+    "followerId": "Follower calib ID",
+    "baud": "Baud rate",
+    "camJson": "Cameras JSON (optional)",
+    "displayData": "display_data",
+    "openCmd": "Open command builder",
+    "copy": "Copy",
+    "download": "Download script"
+  }
+}
