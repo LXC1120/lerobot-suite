@@ -1,55 +1,51 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>训练/推理</title>
-  <link rel="stylesheet" href="assets/app.css" />
+  <link rel="stylesheet" href="assets/app.css"/>
   <script src="js/app-config.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/fab-settings.js"></script>
 </head>
 <body>
   <div class="header">
     <div class="header-inner">
       <div>
-        <h1 id="pageTitle"></h1>
-        <div class="small muted" id="pageSubtitle"></div>
+        <h1>LeRobot 工具套件V1</h1>
+        <div class="small muted">训练 / 推理（先做配置与命令骨架，后续接 HuggingFace）</div>
       </div>
-      <div class="nav">
-        <a href="index.html" data-i18n="nav.home"></a>
-        <a href="hardware.html" data-i18n="nav.hardware"></a>
-        <a href="calibrate.html" data-i18n="nav.calibrate"></a>
-        <a class="active" href="train.html" data-i18n="nav.train"></a>
+      <div class="topbar-right">
+        <a class="navbtn" href="servo.html">舵机配置</a>
+        <a class="navbtn" href="calibrate.html">校准/命令</a>
+        <a class="navbtn active" href="train.html">训练/推理</a>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <h2>训练与推理（占位）</h2>
-    <p class="small muted">
-      这里预留给后续功能：绑定 HuggingFace、一键推送云端训练、拉取训练结果、生成推理命令、模型管理等。
-      当前版本只提供配置骨架（SuiteConfig.hf）。
-    </p>
-
-    <div class="grid2" style="margin-top:10px">
-      <label class="small">HF enabled
+    <h2>HuggingFace（占位）</h2>
+    <div class="grid2">
+      <label class="small">启用
         <select id="hfEnabled" style="width:100%">
           <option value="false">false</option>
           <option value="true">true</option>
         </select>
       </label>
-      <label class="small">HF username
+      <label class="small">用户名
         <input id="hfUser" placeholder="yourname" style="width:100%"/>
       </label>
     </div>
 
     <div class="grid2" style="margin-top:10px">
-      <label class="small">HF repo
+      <label class="small">仓库
         <input id="hfRepo" placeholder="repo-name" style="width:100%"/>
       </label>
       <div class="card" style="padding:12px">
         <div class="small muted">
-          下一步建议：使用 OAuth / token（避免把 token 明文存本地），并通过后端代理或 GitHub Actions 实现上传训练。
+          后续：这里会加入“一键推送数据→触发云端训练→拉取模型→一键推理”。<br/>
+          为了安全，token 不建议明文存在前端配置文件里（可用 OAuth/后端/Actions）。
         </div>
       </div>
     </div>
@@ -58,9 +54,7 @@
 <script>
 (async () => {
   await SuiteI18n.apply();
-  const dict = window.__i18nDict || {};
-  document.getElementById("pageTitle").textContent = dict?.nav?.train || "训练/推理";
-  document.getElementById("pageSubtitle").textContent = "HuggingFace integration (placeholder)";
+  await SuiteFAB.mountFAB();
 
   const cfg = SuiteConfig.get();
   const hfEnabled = document.getElementById("hfEnabled");
@@ -80,6 +74,7 @@
       }
     });
   }
+
   [hfEnabled, hfUser, hfRepo].forEach(el => el.addEventListener("change", save));
 })();
 </script>
