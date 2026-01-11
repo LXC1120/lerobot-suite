@@ -14,24 +14,15 @@
   const DEFAULT_CONFIG = {
     version: "suite_v1",
     ui: { lang: "zh-CN", os: "win" },
-    shop: { url: "https://example.com", qr: "assets/qr.png" },
 
-    servoTool: {
-      baud: 1000000,
-      scanRange: [1, 20],
-      posPeriodMs: 50,
-      pipelineRange: [1, 6],
-      idNotes: {} // { "1": "肩关节", ... }
-    },
+    // 以后你可以把店铺链接、广告位配置也放这里
+    shop: { url: "https://example.com", qr: "assets/qr.png" },
 
     lerobot: {
       baud: 1000000,
-      jointIds: [1,2,3,4,5,6],
       leader: { calibId: "", note: "主臂" },
       follower: { calibId: "", note: "从臂" },
-      cameras: { mainDeviceLabelHint: "", auxDeviceLabelHint: "" },
-      commandFlags: { display_data: true, robot_cameras_json: "" },
-      calibNotes: {} // calibId -> note
+      commandFlags: { display_data: true, robot_cameras_json: "" }
     },
 
     hf: { enabled: false, username: "", repo: "" }
@@ -73,7 +64,6 @@
     const cfg = load();
     const jsonText = JSON.stringify(cfg, null, 2);
 
-    // File System Access API（Chrome/Edge 桌面）
     if (window.showSaveFilePicker){
       const handle = await window.showSaveFilePicker({
         suggestedName: "lerobot-suite-config.json",
@@ -84,7 +74,6 @@
       await writable.close();
       return;
     }
-    // fallback
     downloadText("lerobot-suite-config.json", jsonText);
   }
 
@@ -100,7 +89,7 @@
       save(deepMerge(DEFAULT_CONFIG, cfg));
       return;
     }
-    // fallback input
+
     return new Promise((resolve, reject) => {
       const inp = document.createElement("input");
       inp.type = "file";
