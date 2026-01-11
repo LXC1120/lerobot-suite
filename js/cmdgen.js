@@ -2,11 +2,7 @@
   function quote(os, s){
     s = String(s ?? "");
     if (!s) return "''";
-    if (os === "win"){
-      // PowerShell: '' inside ''
-      return "'" + s.replace(/'/g, "''") + "'";
-    }
-    // bash: '\'' trick
+    if (os === "win") return "'" + s.replace(/'/g, "''") + "'";
     return "'" + s.replace(/'/g, "'\\''") + "'";
   }
 
@@ -64,12 +60,7 @@
       ` --display_data=${displayData}`
     ].filter(Boolean).join("");
 
-    return {
-      teleop: header + teleop,
-      calLeader: header + calLeader,
-      calFollower: header + calFollower,
-      record: header + record
-    };
+    return { teleop: header + teleop, calLeader: header + calLeader, calFollower: header + calFollower, record: header + record };
   }
 
   async function copy(text){
