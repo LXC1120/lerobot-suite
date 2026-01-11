@@ -27,6 +27,7 @@
 
   <div class="card">
     <h2>参数</h2>
+
     <div class="grid2">
       <label class="small">主臂校准ID
         <input id="leaderId" placeholder="my_leader_arm" style="width:100%"/>
@@ -58,7 +59,7 @@
       <span class="spacer"></span>
       <button class="btn" id="btnCopy">复制 teleop</button>
       <button class="btn" id="btnDownload">下载 teleop 脚本</button>
-      <span class="pill" id="osPill"></span>
+      <span class="pill" id="osPill">OS</span>
     </div>
   </div>
 
@@ -150,7 +151,6 @@
   };
 
   (async () => {
-    await SuiteI18n.apply();
     await SuiteFAB.mountFAB();
     syncUIFromCfg();
     build();
