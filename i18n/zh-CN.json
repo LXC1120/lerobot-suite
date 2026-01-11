@@ -1,39 +1,11 @@
 {
   "portal": {
-    "title": "LeRobot 工具套件V1（Web Serial / 桌面 Chrome）",
-    "subtitle": "按阶段组织：组装/配置舵机 → 校准/录制 → 训练/推理",
     "lang": "页面语言",
     "os": "运行系统",
     "import": "导入配置文件",
     "export": "导出配置文件",
     "reset": "恢复默认配置",
-    "cards": {
-      "hardware": "组装与硬件配置",
-      "calibrate": "校准与数据采集",
-      "train": "训练与推理（占位）"
-    },
     "tips": "提示：串口与目录权限出于浏览器安全限制，需要在每台电脑/每个浏览器手动授权一次。"
   },
-  "nav": {
-    "home": "主页",
-    "hardware": "硬件配置",
-    "calibrate": "校准/命令",
-    "train": "训练/推理"
-  },
-  "hardware": {
-    "title": "组装与硬件配置",
-    "subtitle": "下方嵌入舵机配置工具V8.2（原样保留，不做逻辑改动）",
-    "openNewTab": "新标签打开舵机工具"
-  },
-  "cal": {
-    "title": "校准与命令生成",
-    "leaderId": "主臂校准ID",
-    "followerId": "从臂校准ID",
-    "baud": "波特率",
-    "camJson": "相机配置JSON（可选）",
-    "displayData": "display_data",
-    "openCmd": "打开命令生成器",
-    "copy": "复制",
-    "download": "下载脚本"
-  }
+  "common": { "close": "关闭" }
 }
