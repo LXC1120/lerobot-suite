@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>LeRobot 命令生成（由配置文件生成）</title>
+  <style>
+    :root{color-scheme:light dark}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"PingFang SC","Microsoft YaHei",sans-serif;max-width:1200px;margin:0 auto;padding:16px;line-height:1.45}
+    h1{font-size:18px;margin:0 0 10px}
+    .small{font-size:12px;opacity:.85}
+    .pill{display:inline-block;padding:2px 10px;border:1px solid rgba(127,127,127,.35);border-radius:999px}
+    .btn{padding:8px 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);cursor:pointer;background:transparent}
+    .card{border:1px solid rgba(127,127,127,.25);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05);margin:10px 0}
+    .cmd{font: ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; white-space:pre-wrap; word-break:break-word}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .spacer{flex:1}
+    .item{display:flex;gap:10px;align-items:flex-start}
+    .copy{min-width:88px}
+    .warn{color:#b45309}
+  </style>
+</head>
+<body>
+  <h1>LeRobot 命令生成</h1>
+  <div class="small">
+    <span class="pill" id="pillCfg">读取配置中…</span>
+    <span class="pill">点击命令即可复制</span>
+  </div>
+
+  <div id="content"></div>
+
+  <script type="module">
+    import { loadConfig, saveConfig, copyText, fmtOSQuote, esc, t } from "./common.js";
+
+    const cfg = loadConfig();
+    const pillCfg = document.getElementById("pillCfg");
+    pillCfg.textContent = (cfg.lang === "en") ? "Config loaded" : "配置已加载";
+
+    function osLabel(os){
+      if (os === "win") return "Windows";
+      if (os === "mac") return "macOS";
+      return "Linux";
+    }
+
+    function build(cfg){
+      const os = cfg.os || "linux";
+      const baud = 1000000; // optional; keep here for future extension
+      const leaderPort = cfg.devices.leaderPortPath || "<LEADER_PORT>";
+      const followerPort = cfg.devices.followerPortPath || "<FOLLOWER_PORT>";
+
+      const leaderId = cfg.notes?.calib?.leaderId || "my_awesome_leader_arm";
+      const followerId = cfg.notes?.calib?.followerId || "my_awesome_follower_arm";
+
+      const datasetRepoId = cfg.training.datasetRepoId || "${HF_USER}/mydataset";
+      const outDir = cfg.training.outputDir || "outputs/train/run1";
+      const job = cfg.training.jobName || "run1";
+      const device = cfg.training.device || "cuda";
+      const wandb = cfg.training.wandb ? "true" : "false";
+
+      const cameras = (cfg.training.taskText && cfg.training.taskText.trim()) ? cfg.training.taskText.trim() : "";
+
+      // Commands are based on LeRobot docs and examples:
+      // calibrate / teleoperate / record / replay / train / smolvla fine-tune.
+      const cmdCalLeader =
+`lerobot-calibrate \\
+  --robot.type=${fmtOSQuote(os, "so101_leader")} \\
+  --robot.port=${fmtOSQuote(os, leaderPort)} \\
+  --robot.id=${fmtOSQuote(os, leaderId)} \\
+  --robot.baud=${baud}`;
+
+      const cmdCalFollower =
+`lerobot-calibrate \\
+  --robot.type=${fmtOSQuote(os, "so101_follower")} \\
+  --robot.port=${fmtOSQuote(os, followerPort)} \\
+  --robot.id=${fmtOSQuote(os, followerId)} \\
+  --robot.baud=${baud}`;
+
+      const cmdTeleop =
+`lerobot-teleoperate \\
+  --robot.type=${fmtOSQuote(os, "so101_follower")} \\
+  --robot.port=${fmtOSQuote(os, followerPort)} \\
+  --robot.id=${fmtOSQuote(os, followerId)} \\
+  --teleop.type=${fmtOSQuote(os, "so101_leader")} \\
+  --teleop.port=${fmtOSQuote(os, leaderPort)} \\
+  --teleop.id=${fmtOSQuote(os, leaderId)} \\
+  --display_data=${(cfg.training.displayData === false) ? "false" : "true"}`;
+
+      const cmdRecord =
+`lerobot-record \\
+  --robot.type=${fmtOSQuote(os, "so101_follower")} \\
+  --robot.port=${fmtOSQuote(os, followerPort)} \\
+  --robot.id=${fmtOSQuote(os, followerId)} \\
+  --teleop.type=${fmtOSQuote(os, "so101_leader")} \\
+  --teleop.port=${fmtOSQuote(os, leaderPort)} \\
+  --teleop.id=${fmtOSQuote(os, leaderId)} \\
+  --dataset.repo_id=${fmtOSQuote(os, datasetRepoId)}`;
+
+      const cmdReplay =
+`python -m lerobot.replay \\
+  --robot.type=${fmtOSQuote(os, "so101_follower")} \\
+  --robot.port=${fmtOSQuote(os, followerPort)} \\
+  --robot.id=${fmtOSQuote(os, followerId)} \\
+  --dataset.repo_id=${fmtOSQuote(os, datasetRepoId)} \\
+  --dataset.episode=0`;
+
+      const cmdTrainAct =
+`python lerobot/scripts/train.py \\
+  --dataset.repo_id=${fmtOSQuote(os, datasetRepoId)} \\
+  --policy.type=${fmtOSQuote(os, "act")} \\
+  --output_dir=${fmtOSQuote(os, outDir)} \\
+  --job_name=${fmtOSQuote(os, job)} \\
+  --policy.device=${fmtOSQuote(os, device)} \\
+  --wandb.enable=${wandb}`;
+
+      const cmdTrainGeneric =
+`lerobot-train \\
+  --policy=${fmtOSQuote(os, cfg.training.policy || "act")} \\
+  --dataset.repo_id=${fmtOSQuote(os, datasetRepoId)} \\
+  --output_dir=${fmtOSQuote(os, outDir)} \\
+  --job_name=${fmtOSQuote(os, job)} \\
+  --policy.device=${fmtOSQuote(os, device)} \\
+  --wandb.enable=${wandb}`;
+
+      const cmdSmolVLA =
+`cd lerobot && lerobot-train \\
+  --policy.path=${fmtOSQuote(os, cfg.training.smolvlaBase || "lerobot/smolvla_base")} \\
+  --dataset.repo_id=${fmtOSQuote(os, datasetRepoId)} \\
+  --batch_size=${cfg.training.batchSize || 64} \\
+  --steps=${cfg.training.steps || 20000} \\
+  --output_dir=${fmtOSQuote(os, outDir)} \\
+  --job_name=${fmtOSQuote(os, job)} \\
+  --policy.device=${fmtOSQuote(os, device)} \\
+  --wandb.enable=${wandb}`;
+
+      return [
+        { title: t(cfg, "校准主臂（lerobot-calibrate）", "Calibrate Leader (lerobot-calibrate)"), cmd: cmdCalLeader },
+        { title: t(cfg, "校准从臂（lerobot-calibrate）", "Calibrate Follower (lerobot-calibrate)"), cmd: cmdCalFollower },
+        { title: t(cfg, "遥操作（lerobot-teleoperate）", "Teleoperate (lerobot-teleoperate)"), cmd: cmdTeleop },
+        { title: t(cfg, "录制数据（lerobot-record）", "Record (lerobot-record)"), cmd: cmdRecord },
+        { title: t(cfg, "回放动作（python -m lerobot.replay）", "Replay (python -m lerobot.replay)"), cmd: cmdReplay },
+        { title: t(cfg, "训练 ACT（教程命令）", "Train ACT (tutorial command)"), cmd: cmdTrainAct },
+        { title: t(cfg, "训练（统一 CLI：lerobot-train）", "Train (unified CLI: lerobot-train)"), cmd: cmdTrainGeneric },
+        { title: t(cfg, "SmolVLA 微调（lerobot-train --policy.path=...）", "Fine-tune SmolVLA (lerobot-train --policy.path=...)"), cmd: cmdSmolVLA },
+      ];
+    }
+
+    function render(){
+      const container = document.getElementById("content");
+      container.innerHTML = "";
+
+      const top = document.createElement("div");
+      top.className = "card";
+      top.innerHTML = `
+        <div class="row">
+          <strong>${esc(t(cfg, "当前系统", "OS"))}: ${esc(osLabel(cfg.os))}</strong>
+          <span class="spacer"></span>
+          <span class="pill">${esc(t(cfg, "提示：端口路径建议在【设置】里填好", "Tip: set port paths in Settings"))}</span>
+        </div>
+        <div class="small warn" style="margin-top:8px">
+          ${esc(t(cfg,
+            "注意：浏览器无法自动知道 /dev/tty* 或 COM*，所以命令里的端口来自你的配置；没有填写时会显示占位符。",
+            "Note: browser cannot auto-detect /dev/tty* or COM*; commands use your configured port paths (or placeholders)."
+          ))}
+        </div>`;
+      container.appendChild(top);
+
+      for (const it of build(cfg)){
+        const card = document.createElement("div");
+        card.className = "card item";
+        card.innerHTML = `
+          <div style="flex:1">
+            <div class="row">
+              <strong>${esc(it.title)}</strong>
+              <span class="spacer"></span>
+              <button class="btn copy">${esc(t(cfg,"复制","Copy"))}</button>
+            </div>
+            <div class="cmd" role="button" tabindex="0" style="margin-top:8px">${esc(it.cmd)}</div>
+            <div class="small" style="margin-top:8px; opacity:.75">${esc(t(cfg,"点击命令或复制按钮即可复制","Click command or Copy button"))}</div>
+          </div>`;
+        const cmdEl = card.querySelector(".cmd");
+        const btn = card.querySelector(".copy");
+        const doCopy = async () => {
+          const ok = await copyText(it.cmd);
+          btn.textContent = ok ? (cfg.lang==="en"?"Copied":"已复制") : (cfg.lang==="en"?"Copy failed":"复制失败");
+          setTimeout(()=>btn.textContent = (cfg.lang==="en"?"Copy":"复制"), 900);
+        };
+        btn.addEventListener("click", doCopy);
+        cmdEl.addEventListener("click", doCopy);
+        cmdEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); doCopy(); }});
+        container.appendChild(card);
+      }
+    }
+
+    // Listen for settings changes from parent shell
+    window.addEventListener("message", (ev) => {
+      if (!ev?.data || ev.data.type !== "CFG_UPDATED") return;
+      try {
+        const next = ev.data.cfg;
+        localStorage.setItem("lerobot_suite_config_v1", JSON.stringify(next, null, 2));
+        location.reload();
+      } catch {}
+    });
+
+    render();
+  </script>
+</body>
+</html>
