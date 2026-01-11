@@ -1,120 +1,38 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>LeRobot 工具套件V1</title>
-  <link rel="stylesheet" href="assets/app.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>舵机配置</title>
+  <link rel="stylesheet" href="assets/app.css"/>
   <script src="js/app-config.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/fab-settings.js"></script>
 </head>
 <body>
   <div class="header">
     <div class="header-inner">
       <div>
-        <h1 id="pageTitle"></h1>
-        <div class="small muted" id="pageSubtitle"></div>
+        <h1>LeRobot 工具套件V1</h1>
+        <div class="small muted">舵机配置 / 校准命令 / 训练推理</div>
       </div>
-      <div class="nav">
-        <a class="active" href="index.html" data-i18n="nav.home"></a>
-        <a href="hardware.html" data-i18n="nav.hardware"></a>
-        <a href="calibrate.html" data-i18n="nav.calibrate"></a>
-        <a href="train.html" data-i18n="nav.train"></a>
+      <div class="topbar-right">
+        <a class="navbtn active" href="servo.html">舵机配置</a>
+        <a class="navbtn" href="calibrate.html">校准/命令</a>
+        <a class="navbtn" href="train.html">训练/推理</a>
+        <a class="btn" href="servo-tool-v8.2.html" target="_blank" rel="noopener">新标签打开</a>
       </div>
     </div>
   </div>
 
-  <div class="card">
-    <div class="row">
-      <div class="pill" id="cfgPill">Config: OK</div>
-      <span class="spacer"></span>
-      <button class="btn" id="btnImport" data-i18n="portal.import"></button>
-      <button class="btn" id="btnExport" data-i18n="portal.export"></button>
-      <button class="btn" id="btnReset" data-i18n="portal.reset"></button>
-    </div>
-
-    <div class="grid2" style="margin-top:12px">
-      <label class="small"><span data-i18n="portal.lang"></span>
-        <select id="selLang" style="width:100%">
-          <option value="zh-CN">中文</option>
-          <option value="en">English</option>
-        </select>
-      </label>
-
-      <label class="small"><span data-i18n="portal.os"></span>
-        <select id="selOS" style="width:100%">
-          <option value="win">Windows</option>
-          <option value="mac">macOS</option>
-          <option value="linux">Linux</option>
-        </select>
-      </label>
-    </div>
-
-    <p class="small muted" style="margin-top:10px" data-i18n="portal.tips"></p>
-  </div>
-
-  <div class="grid2" style="margin-top:14px">
-    <div class="card">
-      <h2 data-i18n="portal.cards.hardware"></h2>
-      <p class="small muted">扫描/在线/位置、改ID、写40=128、流水线配置。</p>
-      <a class="btn" href="hardware.html" style="display:inline-block;text-decoration:none">Go</a>
-    </div>
-
-    <div class="card">
-      <h2 data-i18n="portal.cards.calibrate"></h2>
-      <p class="small muted">命令生成（teleop / calibrate / record）。</p>
-      <a class="btn" href="calibrate.html" style="display:inline-block;text-decoration:none">Go</a>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:14px">
-    <h2 data-i18n="portal.cards.train"></h2>
-    <p class="small muted">后续扩展：绑定 HuggingFace，一键推送云端训练、拉取结果与推理。</p>
-    <a class="btn" href="train.html" style="display:inline-block;text-decoration:none">Go</a>
+  <div class="card" style="padding:0; overflow:hidden">
+    <iframe src="servo-tool-v8.2.html" style="width:100%; height:82vh; border:0"></iframe>
   </div>
 
 <script>
-(() => {
-  const titleEl = document.getElementById("pageTitle");
-  const subEl = document.getElementById("pageSubtitle");
-  const selLang = document.getElementById("selLang");
-  const selOS = document.getElementById("selOS");
-  const cfgPill = document.getElementById("cfgPill");
-
-  function renderHeader(){
-    const cfg = SuiteConfig.get();
-    const dict = window.__i18nDict || {};
-    titleEl.textContent = dict?.portal?.title || "LeRobot 工具套件V1";
-    subEl.textContent = dict?.portal?.subtitle || "";
-    selLang.value = cfg.ui.lang;
-    selOS.value = cfg.ui.os;
-    cfgPill.textContent = `Config: ${cfg.version || "suite_v1"}`;
-  }
-
-  async function applyAll(){
-    await SuiteI18n.apply();
-    renderHeader();
-  }
-
-  document.getElementById("btnImport").onclick = async () => {
-    try{ await SuiteConfig.importFromFile(); await applyAll(); alert("已导入配置"); }
-    catch(e){ alert("导入失败: " + (e?.message||e)); }
-  };
-  document.getElementById("btnExport").onclick = async () => {
-    try{ await SuiteConfig.exportToFile(); }
-    catch(e){ alert("导出失败: " + (e?.message||e)); }
-  };
-  document.getElementById("btnReset").onclick = () => {
-    if (!confirm("确定恢复默认配置？")) return;
-    SuiteConfig.reset();
-    applyAll();
-  };
-
-  selLang.onchange = async () => { SuiteConfig.set({ui:{lang: selLang.value}}); await applyAll(); };
-  selOS.onchange = async () => { SuiteConfig.set({ui:{os: selOS.value}}); await applyAll(); };
-
-  window.addEventListener("suite-config-changed", () => renderHeader());
-  applyAll();
+(async () => {
+  await SuiteI18n.apply();
+  await SuiteFAB.mountFAB();
 })();
 </script>
 </body>
