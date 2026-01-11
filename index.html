@@ -2,38 +2,15 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"/>
+  <meta http-equiv="refresh" content="0; url=servo.html">
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>舵机配置</title>
-  <link rel="stylesheet" href="assets/app.css"/>
-  <script src="js/app-config.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/fab-settings.js"></script>
+  <title>LeRobot 工具套件</title>
+  <script>
+    // 更可靠的跳转（避免部分浏览器不吃 meta refresh）
+    location.replace("servo.html");
+  </script>
 </head>
 <body>
-  <div class="header">
-    <div class="header-inner">
-      <div>
-        <h1>LeRobot 工具套件V1</h1>
-        <div class="small muted">舵机配置 / 校准命令 / 训练推理</div>
-      </div>
-      <div class="topbar-right">
-        <a class="navbtn active" href="servo.html">舵机配置</a>
-        <a class="navbtn" href="calibrate.html">校准/命令</a>
-        <a class="navbtn" href="train.html">训练/推理</a>
-        <a class="btn" href="servo-tool-v8.2.html" target="_blank" rel="noopener">新标签打开</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="card" style="padding:0; overflow:hidden">
-    <iframe src="servo-tool-v8.2.html" style="width:100%; height:82vh; border:0"></iframe>
-  </div>
-
-<script>
-(async () => {
-  await SuiteI18n.apply();
-  await SuiteFAB.mountFAB();
-})();
-</script>
+  <p>Redirecting… <a href="servo.html">Click here</a></p>
 </body>
 </html>
