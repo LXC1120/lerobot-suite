@@ -1,37 +1,761 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>舵机配置</title>
-  <link rel="stylesheet" href="assets/app.css"/>
-  <script src="js/app-config.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="js/fab-settings.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>舵机配置工具V8.2（Web Serial / 桌面 Chrome）</title>
+  <style>
+    :root{color-scheme:light dark}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"PingFang SC","Microsoft YaHei",sans-serif;max-width:1200px;margin:0 auto;padding:16px;line-height:1.45}
+    a{color:inherit}
+    h1{font-size:18px;margin:0}
+    h2{font-size:15px;margin:0 0 10px}
+    .small{font-size:12px;opacity:.85}
+    .pill{display:inline-block;padding:2px 10px;border:1px solid rgba(127,127,127,.35);border-radius:999px}
+    .ok{color:#0a7a2f}
+    .warn{color:#b45309}
+    .btn{padding:8px 10px;border-radius:12px;border:1px solid rgba(127,127,127,.35);cursor:pointer;background:transparent}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    input{padding:7px 9px;border-radius:10px;border:1px solid rgba(127,127,127,.35);font:inherit}
+    .mini{width:86px}
+    .card{border:1px solid rgba(127,127,127,.25);border-radius:16px;padding:14px;box-shadow:0 2px 10px rgba(0,0,0,.05)}
+    .header{position:sticky;top:0;z-index:10;background:Canvas;border-bottom:1px solid rgba(127,127,127,.18);padding:10px 0;margin-bottom:14px}
+    .header-inner{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .leftTitle{display:flex;flex-direction:column;gap:4px}
+    .rightConnect{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .layout{display:grid;grid-template-columns:330px 1fr;gap:14px;align-items:start}
+    @media (max-width:980px){.layout{grid-template-columns:1fr}}
+    table{border-collapse:collapse;width:100%}
+    th,td{border-bottom:1px solid rgba(127,127,127,.22);padding:7px 8px;text-align:left;font-size:13px;vertical-align:middle}
+    th{opacity:.9}
+    pre{background:rgba(0,0,0,.85);color:#e8eefc;padding:12px;border-radius:16px;overflow:auto;max-height:280px;margin:0}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .spacer{flex:1}
+    .qrWrap{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center}
+    .qr{width:120px;height:120px;border-radius:14px;border:1px solid rgba(127,127,127,.25);display:block;object-fit:cover;background:rgba(127,127,127,.15)}
+    .muted{opacity:.85}
+    dialog{border:none;border-radius:18px;padding:0;max-width:min(720px,92vw);box-shadow:0 12px 40px rgba(0,0,0,.3)}
+    dialog::backdrop{background:rgba(0,0,0,.5)}
+    .modal{padding:14px}
+    .modalHeader{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+    .modalGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width:720px){.modalGrid{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
+
   <div class="header">
     <div class="header-inner">
-      <div>
-        <h1>LeRobot 工具套件V1</h1>
-        <div class="small muted">舵机配置 / 校准命令 / 训练推理</div>
+      <div class="leftTitle">
+        <h1>舵机配置工具V8.2（Web Serial / 桌面 Chrome）</h1>
+        <div class="small">
+          <span class="pill" id="statusPill">未连接</span>
+          <span class="pill">外接电源｜TX/RX 交叉｜GND 共地</span>
+        </div>
       </div>
-      <div class="topbar-right">
-        <a class="navbtn active" href="servo.html">舵机配置</a>
-        <a class="navbtn" href="calibrate.html">校准/命令</a>
-        <a class="navbtn" href="train.html">训练/推理</a>
-        <a class="btn" href="servo-tool-v8.2.html" target="_blank" rel="noopener" style="text-decoration:none">新标签打开</a>
+
+      <div class="rightConnect">
+        <label class="small">波特率 <input id="baud" class="mini" inputmode="numeric"/></label>
+        <button class="btn" id="btnConnect">连接串口</button>
+        <button class="btn" id="btnDisconnect" disabled>断开</button>
       </div>
     </div>
   </div>
 
-  <div class="card" style="padding:0; overflow:hidden">
-    <iframe src="servo-tool-v8.2.html" style="width:100%; height:82vh; border:0"></iframe>
+  <div class="layout">
+    <div class="card">
+      <h2>常用功能</h2>
+      <div class="row">
+        <button class="btn" id="btnOpenScan">扫描舵机</button>
+        <button class="btn" id="btnOpenPipeline">流水线配置</button>
+      </div>
+      <p class="small muted" style="margin:10px 0 0">
+        提示：先“扫描舵机”，再打开右侧列表里的“自动刷新位置/在线”。
+      </p>
+
+      <hr style="border:none;border-top:1px solid rgba(127,127,127,.2);margin:14px 0">
+
+      <h2>我的店铺 / 购买链接</h2>
+      <div class="qrWrap">
+        <img class="qr" src="qr.png" alt="店铺二维码（请替换 qr.png）" />
+        <div>
+          <div class="muted small">扫码进入店铺 / 获取配套硬件</div>
+          <div style="margin:6px 0 10px">
+            <a id="shopLink" href="https://example.com" target="_blank" rel="noopener">https://example.com</a>
+          </div>
+          <button class="btn" id="btnCopyLink">复制链接</button>
+          <div class="small muted" style="margin-top:8px">提示：替换同目录 qr.png，并把链接改成你的店铺。</div>
+        </div>
+      </div>
+
+      <p class="small warn" style="margin:14px 0 0">
+        Web Serial 仅在 HTTPS（或 http://localhost）可用；请使用桌面 Chrome/Edge。
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom:8px">
+        <h2 style="margin:0">舵机列表</h2>
+        <span class="spacer"></span>
+
+        <label class="small row" style="gap:8px">
+          <input id="posEnable" type="checkbox" disabled/>
+          自动刷新位置/在线
+        </label>
+        <label class="small">刷新ms <input id="posPeriod" class="mini" inputmode="numeric"/></label>
+        <span class="pill" id="posState">未运行</span>
+        <span class="pill" id="scanState">未扫描</span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>在线</th>
+            <th>位置(0x38)</th>
+            <th>改ID</th>
+            <th>写40=128</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+
+      <p class="small muted" style="margin:10px 0 0">
+        改ID不会弹窗；写操作均为定向写（作用于该行 ID）。
+        刷新网页会从本地存储恢复输入与表格（串口需重新连接授权）。
+      </p>
+    </div>
   </div>
 
+  <div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between">
+      <h2 style="margin:0">日志</h2>
+      <button class="btn" id="btnClearLog">清空日志</button>
+    </div>
+    <pre id="log"></pre>
+  </div>
+
+  <dialog id="dlgScan">
+    <div class="modal">
+      <div class="modalHeader">
+        <strong>扫描舵机</strong>
+        <button class="btn" id="btnCloseScan">关闭</button>
+      </div>
+      <div class="modalGrid">
+        <label>扫描起始ID <input id="scanStart" inputmode="numeric"/></label>
+        <label>扫描结束ID <input id="scanEnd" inputmode="numeric"/></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnScanOnce" disabled>扫描一次</button>
+        <span class="small muted">扫描只把在线舵机加入表格（不显示数量）。</span>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="dlgPipeline">
+    <div class="modal">
+      <div class="modalHeader">
+        <strong>流水线配置（自动监控插拔）</strong>
+        <button class="btn" id="btnClosePipeline">关闭</button>
+      </div>
+      <div class="modalGrid">
+        <label>起始ID <input id="pipeStart" inputmode="numeric"/></label>
+        <label>结束ID <input id="pipeEnd" inputmode="numeric"/></label>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btnPipeStart" disabled>开始流水线</button>
+        <button class="btn" id="btnPipeStop" disabled>中断</button>
+        <span class="pill" id="pipeState">未运行</span>
+      </div>
+      <p class="small muted" style="margin-top:10px">
+        流水线使用广播探测插入（PING 0xFE）+ 广播写入，请确保任意时刻总线上只有 1 个舵机。
+      </p>
+    </div>
+  </dialog>
+
 <script>
-(async () => {
-  await SuiteFAB.mountFAB();
+(() => {
+  const BROADCAST_ID = 0xFE;
+  const ADDR_ID     = 0x05;
+  const ADDR_LOCK   = 0x37;
+  const ADDR_TORQUE = 0x28; // 40
+
+  const LS_KEY = "servo_tool_state_v8_2";
+  function loadState(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); }catch{ return {}; } }
+  function saveState(partial){ const cur=loadState(); localStorage.setItem(LS_KEY, JSON.stringify(Object.assign({}, cur, partial))); }
+
+  let port=null, writer=null, reader=null, readLoopRunning=false;
+  let rxBuf=[];
+
+  let opChain = Promise.resolve();
+  function withLock(fn){ const next = opChain.then(fn, fn); opChain = next.catch(()=>{}); return next; }
+
+  // devices: id -> { online, pos, failCount, row }
+  const devices = new Map();
+
+  // UI
+  const logEl = document.getElementById('log');
+  const statusPill = document.getElementById('statusPill');
+  const btnConnect = document.getElementById('btnConnect');
+  const btnDisconnect = document.getElementById('btnDisconnect');
+  const baudEl = document.getElementById('baud');
+
+  const posEnableEl = document.getElementById('posEnable');
+  const posPeriodEl = document.getElementById('posPeriod');
+  const posStateEl = document.getElementById('posState');
+  const scanStateEl = document.getElementById('scanState');
+
+  const tbody = document.getElementById('tbody');
+  const btnClearLog = document.getElementById('btnClearLog');
+
+  const dlgScan = document.getElementById('dlgScan');
+  const dlgPipeline = document.getElementById('dlgPipeline');
+  const btnOpenScan = document.getElementById('btnOpenScan');
+  const btnOpenPipeline = document.getElementById('btnOpenPipeline');
+  const btnCloseScan = document.getElementById('btnCloseScan');
+  const btnClosePipeline = document.getElementById('btnClosePipeline');
+
+  const scanStartEl = document.getElementById('scanStart');
+  const scanEndEl = document.getElementById('scanEnd');
+  const btnScanOnce = document.getElementById('btnScanOnce');
+
+  const pipeStartEl = document.getElementById('pipeStart');
+  const pipeEndEl = document.getElementById('pipeEnd');
+  const btnPipeStart = document.getElementById('btnPipeStart');
+  const btnPipeStop = document.getElementById('btnPipeStop');
+  const pipeStateEl = document.getElementById('pipeState');
+
+  const shopLinkEl = document.getElementById('shopLink');
+  const btnCopyLink = document.getElementById('btnCopyLink');
+
+  function setStatus(text, kind=""){
+    statusPill.textContent = text;
+    statusPill.className = "pill " + kind;
+  }
+  function log(msg){
+    const t = new Date().toLocaleTimeString();
+    logEl.textContent += `[${t}] ${msg}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+  // Persist / Restore
+  function restoreFromLocalStorage(){
+    const s = loadState();
+    baudEl.value = String(s.baud ?? 1000000);
+    scanStartEl.value = String(s.scanStart ?? 1);
+    scanEndEl.value = String(s.scanEnd ?? 20);
+    posEnableEl.checked = !!(s.posEnable ?? true);
+    posPeriodEl.value = String(s.posPeriod ?? 50);
+    pipeStartEl.value = String(s.pipeStart ?? 1);
+    pipeEndEl.value = String(s.pipeEnd ?? 6);
+    if (typeof s.shopUrl === "string" && s.shopUrl.trim()){
+      shopLinkEl.href = s.shopUrl.trim();
+      shopLinkEl.textContent = s.shopUrl.trim();
+    }
+
+    const ids = Array.isArray(s.ids) ? s.ids : [];
+    for (const id of ids){
+      if (!Number.isFinite(id)) continue;
+      ensureDevice(id);
+      const rowState = (s.rowState && s.rowState[String(id)]) ? s.rowState[String(id)] : null;
+      if (rowState && typeof rowState.newIdInput === "string"){
+        devices.get(id).row.input.value = rowState.newIdInput;
+      }
+      updateRow(id);
+    }
+    scanStateEl.textContent = ids.length ? "已扫描" : "未扫描";
+  }
+  function persistInputs(){
+    saveState({
+      baud: Number(baudEl.value||1000000),
+      scanStart: Number(scanStartEl.value||1),
+      scanEnd: Number(scanEndEl.value||20),
+      posEnable: posEnableEl.checked,
+      posPeriod: Number(posPeriodEl.value||50),
+      pipeStart: Number(pipeStartEl.value||1),
+      pipeEnd: Number(pipeEndEl.value||6),
+      shopUrl: shopLinkEl.textContent || shopLinkEl.href
+    });
+  }
+  function persistTableState(){
+    const ids = Array.from(devices.keys()).sort((a,b)=>a-b);
+    const rowState = {};
+    for (const id of ids){
+      const d = devices.get(id);
+      if (d.row) rowState[String(id)] = { newIdInput: d.row.input.value || "" };
+    }
+    saveState({ ids, rowState });
+  }
+  [baudEl, scanStartEl, scanEndEl, posEnableEl, posPeriodEl, pipeStartEl, pipeEndEl].forEach(el=>{
+    el.addEventListener("change", () => persistInputs());
+  });
+
+  // Protocol
+  function calcChecksum(dataBytes){
+    let sum=0; for (const b of dataBytes) sum += (b & 0xFF);
+    return (~sum) & 0xFF;
+  }
+  function buildPacket(dataBytes){
+    const chk = calcChecksum(dataBytes);
+    return new Uint8Array([0xFF, 0xFF, ...dataBytes, chk]);
+  }
+  function verifyFrameChecksum(frame){
+    if (!frame || frame.length < 6) return false;
+    const len = frame[3];
+    const total = 2 + 1 + 1 + len;
+    if (frame.length !== total) return false;
+    const dataBytes = frame.slice(2, frame.length - 1);
+    const chk = calcChecksum(dataBytes);
+    return chk === frame[frame.length - 1];
+  }
+  async function ensureWriter(){
+    if (!port) throw new Error("未连接串口");
+    if (!writer) writer = port.writable.getWriter();
+  }
+  async function writeRaw(u8){ await ensureWriter(); await writer.write(u8); }
+
+  async function startReadLoop(){
+    reader = port.readable.getReader();
+    readLoopRunning = true;
+    rxBuf = [];
+    (async () => {
+      try{
+        while (readLoopRunning){
+          const {value, done} = await reader.read();
+          if (done) break;
+          if (value && value.length){
+            for (const b of value) rxBuf.push(b);
+            if (rxBuf.length > 8192) rxBuf = rxBuf.slice(-4096);
+          }
+        }
+      } catch(e){
+        log(`读取异常: ${e.message || e}`);
+      }
+    })();
+  }
+  async function stopReadLoop(){
+    readLoopRunning = false;
+    if (reader){ try{ await reader.cancel(); }catch{} try{ reader.releaseLock(); }catch{} reader=null; }
+    rxBuf=[];
+  }
+  function tryPopFrame(){
+    for (let i=0; i+6<=rxBuf.length; i++){
+      if (rxBuf[i]!==0xFF || rxBuf[i+1]!==0xFF) continue;
+      const len = rxBuf[i+3];
+      const total = 2 + 1 + 1 + len;
+      if (i+total > rxBuf.length) return null;
+      const frame = rxBuf.slice(i, i+total);
+      rxBuf = rxBuf.slice(i+total);
+      if (!verifyFrameChecksum(frame)) continue;
+      return frame;
+    }
+    if (rxBuf.length > 4096) rxBuf = rxBuf.slice(-1024);
+    return null;
+  }
+  async function waitFrame(expectedId, timeoutMs){
+    const start = performance.now();
+    while (performance.now() - start < timeoutMs){
+      const fr = tryPopFrame();
+      if (!fr){ await sleep(1); continue; }
+      const id = fr[2];
+      if (expectedId == null || id === expectedId) return fr;
+    }
+    return null;
+  }
+
+  async function ping(id, timeoutMs=90){
+    return withLock(async () => {
+      rxBuf = [];
+      await writeRaw(buildPacket([id & 0xFF, 0x02, 0x01]));
+      return !!(await waitFrame(id, timeoutMs));
+    });
+  }
+  async function pingBroadcastAny(timeoutMs=90){
+    return withLock(async () => {
+      rxBuf = [];
+      await writeRaw(buildPacket([BROADCAST_ID, 0x02, 0x01]));
+      return !!(await waitFrame(null, timeoutMs));
+    });
+  }
+  async function writeReg(id, address, value){
+    return withLock(async () => {
+      rxBuf = [];
+      await writeRaw(buildPacket([id & 0xFF, 0x04, 0x03, address & 0xFF, value & 0xFF]));
+      await sleep(45);
+    });
+  }
+  async function readReg(id, address, size, timeoutMs=35){
+    return withLock(async () => {
+      rxBuf = [];
+      await writeRaw(buildPacket([id & 0xFF, 0x04, 0x02, address & 0xFF, size & 0xFF]));
+      const fr = await waitFrame(id, timeoutMs);
+      if (!fr) return null;
+      if (fr[4] !== 0) return null;
+      const paramsLen = fr[3] - 2;
+      return fr.slice(5, 5 + paramsLen);
+    });
+  }
+
+  async function changeIdTargeted(oldId, newId){
+    oldId = Number(oldId); newId = Number(newId);
+    await writeReg(oldId, ADDR_LOCK, 0);
+    await writeReg(oldId, ADDR_TORQUE, 0);
+    await writeReg(oldId, ADDR_ID, newId);
+    await sleep(150);
+    await writeReg(newId, ADDR_LOCK, 1);
+    let ok = await ping(newId, 160);
+    if (!ok){ await sleep(250); ok = await ping(newId, 160); }
+    if (!ok) throw new Error("验证失败");
+  }
+  async function changeIdBroadcastLikeScript(newId){
+    newId = Number(newId);
+    await writeReg(BROADCAST_ID, ADDR_LOCK, 0);
+    await writeReg(BROADCAST_ID, ADDR_TORQUE, 0);
+    await writeReg(BROADCAST_ID, ADDR_ID, newId);
+    await sleep(150);
+    await writeReg(newId, ADDR_LOCK, 1);
+    let ok = await ping(newId, 160);
+    if (!ok){ await sleep(250); ok = await ping(newId, 160); }
+    if (!ok) throw new Error("验证失败");
+  }
+  async function writeMiddleCalibrate(id){ await writeReg(id, 0x28, 128); }
+
+  // Table
+  function ensureDevice(id){
+    if (!devices.has(id)) devices.set(id, {online:false, pos:null, failCount:0, row:null});
+    ensureRow(id);
+  }
+  function ensureRow(id){
+    const d = devices.get(id);
+    if (d.row) return d.row;
+
+    const tr = document.createElement("tr");
+    tr.dataset.id = String(id);
+
+    const tdId = document.createElement("td");
+    tdId.textContent = String(id);
+
+    const tdOnline = document.createElement("td");
+    const tdPos = document.createElement("td");
+
+    const tdChange = document.createElement("td");
+    const input = document.createElement("input");
+    input.className="mini";
+    input.inputMode="numeric";
+    input.placeholder="新ID";
+
+    const btnChange = document.createElement("button");
+    btnChange.className="btn";
+    btnChange.textContent="改ID";
+    btnChange.dataset.action="change";
+    btnChange.dataset.id=String(id);
+
+    tdChange.append(input, document.createTextNode(" "), btnChange);
+
+    const tdMid = document.createElement("td");
+    const btnMid = document.createElement("button");
+    btnMid.className="btn";
+    btnMid.textContent="写40=128";
+    btnMid.dataset.action="mid";
+    btnMid.dataset.id=String(id);
+    tdMid.append(btnMid);
+
+    tr.append(tdId, tdOnline, tdPos, tdChange, tdMid);
+    tbody.append(tr);
+
+    input.addEventListener("input", () => persistTableState());
+    d.row = {tr, tdOnline, tdPos, input, btnChange, btnMid};
+    return d.row;
+  }
+  function updateRow(id){
+    const d = devices.get(id); if (!d || !d.row) return;
+    d.row.tdOnline.textContent = d.online ? "✅" : "";
+    d.row.tdPos.textContent = (d.pos ?? "");
+    const dis = !d.online || !port;
+    d.row.btnChange.disabled = dis;
+    d.row.btnMid.disabled = dis;
+  }
+  function removeRow(id){
+    const d = devices.get(id);
+    if (d && d.row && d.row.tr) d.row.tr.remove();
+    devices.delete(id);
+  }
+
+  tbody.addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const id = Number(btn.dataset.id);
+    if (!port) return;
+
+    try{
+      btn.disabled = true;
+      const d = devices.get(id);
+      if (!d || !d.online) throw new Error("当前舵机不在线");
+
+      if (action === "change"){
+        const newId = Number(d.row.input.value);
+        if (!Number.isFinite(newId)) throw new Error("请输入新ID");
+        log(`改ID：${id} -> ${newId}`);
+        await changeIdTargeted(id, newId);
+        log("✅ 改ID成功");
+        removeRow(id);
+        ensureDevice(newId);
+        devices.get(newId).online = true;
+        updateRow(newId);
+        persistTableState();
+      } else if (action === "mid"){
+        log(`写40=128：ID=${id}`);
+        await writeMiddleCalibrate(id);
+        log("✅ 写入完成");
+      }
+    } catch(e){
+      log(`操作失败: ${e.message || e}`);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Scan
+  async function scanOnce(){
+    const start = Number(scanStartEl.value);
+    const end = Number(scanEndEl.value);
+    if (!Number.isFinite(start)||!Number.isFinite(end)||start<1||end>253||start>end){
+      alert("扫描范围不合法（1~253 且 起始<=结束）");
+      return;
+    }
+    scanStateEl.textContent = "扫描中...";
+
+    const onlineIds = [];
+    for (let id=start; id<=end; id++){
+      const ok = await ping(id, 70);
+      if (ok) onlineIds.push(id);
+    }
+
+    tbody.innerHTML = "";
+    devices.clear();
+    for (const id of onlineIds){
+      ensureDevice(id);
+      const d = devices.get(id);
+      d.online = true;
+      updateRow(id);
+    }
+
+    scanStateEl.textContent = "已扫描";
+    persistInputs();
+    persistTableState();
+    if (posEnableEl.checked) ensurePosLoop();
+    dlgScan.close();
+  }
+
+  // Position loop
+  const failThreshold = 3;
+  let posLoopRunning=false;
+  async function posLoop(){
+    posLoopRunning = true;
+    posStateEl.textContent = "运行中";
+    while (posLoopRunning && port){
+      const cycleStart = performance.now();
+      const period = Math.max(20, Number(posPeriodEl.value)||50);
+
+      const ids = Array.from(devices.keys());
+      for (const id of ids){
+        const d = devices.get(id);
+        if (!d) continue;
+
+        const params = await readReg(id, 0x38, 2, 30);
+        if (!params || params.length < 2){
+          d.failCount = (d.failCount || 0) + 1;
+          if (d.failCount >= failThreshold){ d.online=false; d.pos=null; }
+          updateRow(id);
+          continue;
+        }
+        const pos = params[0] | (params[1]<<8);
+        d.pos = pos;
+        d.failCount = 0;
+        d.online = true;
+        updateRow(id);
+      }
+
+      const elapsed = performance.now() - cycleStart;
+      const rest = Math.max(0, period - elapsed);
+      if (rest) await sleep(rest); else await sleep(0);
+    }
+    posStateEl.textContent = "已停止";
+  }
+  function ensurePosLoop(){ if (!posEnableEl.checked || !port) return; if (posLoopRunning) return; posLoop(); }
+  function stopPosLoop(){ posLoopRunning=false; }
+
+  posEnableEl.addEventListener("change", () => {
+    persistInputs();
+    if (posEnableEl.checked) ensurePosLoop();
+    else stopPosLoop();
+  });
+
+  // Pipeline
+  let pipeRunning=false;
+  let pipeTarget=1, pipeStart=1, pipeEnd=6;
+  let pipeState="IDLE";
+  let insertSeenCount=0;
+  let removeLostSince=null;
+
+  async function pipeLoop(){
+    while (pipeRunning && port){
+      const stepDelay = 80;
+      try{
+        if (pipeState === "WAIT_INSERT"){
+          const seen = await pingBroadcastAny(80);
+          insertSeenCount = seen ? (insertSeenCount + 1) : 0;
+          if (insertSeenCount >= 3){
+            pipeState = "PROGRAMMING";
+            pipeStateEl.textContent = `检测到插入，配置 ID=${pipeTarget}...`;
+            insertSeenCount = 0;
+          } else {
+            pipeStateEl.textContent = `等待插入（目标 ID=${pipeTarget}）...`;
+          }
+        } else if (pipeState === "PROGRAMMING"){
+          await changeIdBroadcastLikeScript(pipeTarget);
+          log(`✅ 流水线写入成功：ID=${pipeTarget}`);
+          pipeState = "WAIT_REMOVE";
+          removeLostSince = null;
+          pipeStateEl.textContent = `已写入 ID=${pipeTarget}，请拔掉舵机...`;
+        } else if (pipeState === "WAIT_REMOVE"){
+          const online = await ping(pipeTarget, 90);
+          if (online){ removeLostSince = null; }
+          else {
+            if (removeLostSince == null) removeLostSince = performance.now();
+            if (performance.now() - removeLostSince >= 1000){
+              if (pipeTarget >= pipeEnd){
+                log(`🎉 流水线完成：${pipeStart}~${pipeEnd}`);
+                pipeStateEl.textContent = `完成：${pipeStart}~${pipeEnd}`;
+                pipeRunning = false;
+              } else {
+                pipeTarget += 1;
+                pipeState = "WAIT_INSERT";
+                insertSeenCount = 0;
+                removeLostSince = null;
+                log(`请插入下一只舵机，目标 ID=${pipeTarget}`);
+              }
+            }
+          }
+        }
+      } catch(e){
+        log(`流水线异常: ${e.message || e}`);
+        pipeRunning = false;
+        pipeStateEl.textContent = "异常停止";
+      }
+      await sleep(stepDelay);
+    }
+    btnPipeStart.disabled = !port;
+    btnPipeStop.disabled = true;
+    if (!pipeStateEl.textContent.startsWith("完成") && pipeStateEl.textContent !== "异常停止") pipeStateEl.textContent = "未运行";
+  }
+
+  function startPipeline(){
+    pipeStart = Number(pipeStartEl.value);
+    pipeEnd = Number(pipeEndEl.value);
+    if (!Number.isFinite(pipeStart) || !Number.isFinite(pipeEnd) || pipeStart<1 || pipeEnd>253 || pipeStart>pipeEnd){
+      alert("流水线范围不合法（1~253 且 起始<=结束）");
+      return;
+    }
+    persistInputs();
+    pipeRunning = true;
+    pipeTarget = pipeStart;
+    pipeState = "WAIT_INSERT";
+    insertSeenCount = 0;
+    removeLostSince = null;
+    btnPipeStart.disabled = true;
+    btnPipeStop.disabled = false;
+    pipeStateEl.textContent = `等待插入（目标 ID=${pipeTarget}）...`;
+    log(`流水线启动：将配置 ID=${pipeStart}~${pipeEnd}。请插入第一只舵机...`);
+    pipeLoop();
+  }
+  function stopPipeline(){
+    pipeRunning = false;
+    btnPipeStart.disabled = !port;
+    btnPipeStop.disabled = true;
+    pipeStateEl.textContent = "未运行";
+    log("流水线已中断");
+  }
+
+  // Connect
+  function setUiConnected(connected){
+    btnConnect.disabled = connected;
+    btnDisconnect.disabled = !connected;
+    baudEl.disabled = connected;
+
+    btnScanOnce.disabled = !connected;
+    btnPipeStart.disabled = !connected;
+    btnPipeStop.disabled = true;
+
+    posEnableEl.disabled = !connected;
+
+    if (!connected) setStatus("未连接");
+    else setStatus("已连接", "ok");
+
+    for (const id of devices.keys()) updateRow(id);
+  }
+
+  btnConnect.onclick = async () => {
+    try{
+      if (!("serial" in navigator)){ alert("当前浏览器不支持 Web Serial。请使用桌面版 Chrome/Edge。"); return; }
+      const baudRate = Number(baudEl.value || "1000000");
+      if (!Number.isFinite(baudRate) || baudRate<=0){ alert("波特率不合法"); return; }
+
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate });
+      await startReadLoop();
+
+      setUiConnected(true);
+      log(`已连接串口，baud=${baudRate}`);
+      if (posEnableEl.checked) ensurePosLoop();
+    } catch(e){
+      log(`连接失败: ${e.message || e}`);
+      setUiConnected(false);
+      port = null;
+    }
+  };
+
+  btnDisconnect.onclick = async () => {
+    try{
+      stopPipeline();
+      stopPosLoop();
+      await stopReadLoop();
+      if (writer){ try{ writer.releaseLock(); } catch{} writer=null; }
+      if (port){ await port.close(); }
+      port=null;
+      setUiConnected(false);
+      log("已断开串口");
+    } catch(e){
+      log(`断开失败: ${e.message || e}`);
+    }
+  };
+
+  // UI events
+  btnOpenScan.onclick = () => dlgScan.showModal();
+  btnOpenPipeline.onclick = () => dlgPipeline.showModal();
+  btnCloseScan.onclick = () => dlgScan.close();
+  btnClosePipeline.onclick = () => dlgPipeline.close();
+  btnScanOnce.onclick = () => scanOnce().catch(e=>log(`扫描失败: ${e.message||e}`));
+  btnPipeStart.onclick = () => startPipeline();
+  btnPipeStop.onclick = () => stopPipeline();
+  btnClearLog.onclick = () => { logEl.textContent = ""; };
+
+  btnCopyLink.onclick = async () => {
+    try{
+      const url = shopLinkEl.textContent || shopLinkEl.href;
+      await navigator.clipboard.writeText(url);
+      log("已复制店铺链接");
+    } catch {
+      log("复制失败：浏览器可能阻止剪贴板权限");
+    }
+  };
+
+  // Boot
+  restoreFromLocalStorage();
+  persistInputs();
+  setUiConnected(false);
 })();
 </script>
 </body>
